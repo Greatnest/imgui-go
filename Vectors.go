@@ -25,6 +25,21 @@ func (vec *Vec2) wrapped() (out *C.IggVec2, finisher func()) {
 	return
 }
 
+func (vec C.IggVec2) wrapped() (out Vec2, finisher func()) {
+	if vec.x != 0 && vec.y != 0 {
+		out = Vec2{X: float32(vec.x), Y: float32(vec.y)}
+		finisher = func() {
+			vec.x = C.float(out.X)
+			vec.y = C.float(out.Y)
+		}
+
+	} else {
+		finisher = func() {}
+	}
+
+	return
+}
+
 // Vec4 represents a four-dimensional vector.
 type Vec4 struct {
 	X float32

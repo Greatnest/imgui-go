@@ -658,3 +658,11 @@ func IsItemHovered() bool {
 func IsKeyPressed(key int) bool {
 	return C.iggIsKeyPressed(C.int(key)) != 0
 }
+
+//GetContentRegionMax gets the maximum size of the current content
+func GetContentRegionMax() Vec2 {
+	output := C.iggGetContentRegionMax()
+	newVec, _ := output.wrapped()
+
+	return newVec
+}

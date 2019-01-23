@@ -111,6 +111,8 @@ extern IggBool  iggIsItemHovered(int flags);
 
 extern IggBool iggIsKeyPressed(int key);
 
+extern IggVec2 iggGetContentRegionMax();
+
 #ifdef __cplusplus
 }
 #endif

@@ -417,3 +417,12 @@ IggBool iggIsKeyPressed(int key)
 {
    return ImGui::IsKeyPressed(key);
 }
+
+IggVec2 iggGetContentRegionMax() {
+    ImVec2 value = ImGui::GetContentRegionMax();
+    IggVec2 output;
+    output.x = value.x;
+    output.y = value.y;
+
+    return output;
+}
