@@ -424,6 +424,40 @@ func SliderInt(label string, value *int32, min, max int32) bool {
 	return SliderIntV(label, value, min, max, "%d")
 }
 
+// InputTextV creates a text field for dynamic text input.
+//
+// Contrary to the original library, this wrapper does not limit the maximum number of possible characters.
+// Dynamic resizing of the internal buffer is handled within the wrapper and the user will never be called for such requests.
+//
+// To implement a character limit, provide a callback that drops input characters when the requested length has been reached.
+func InputTextV(label string, text *string, flags int, cb InputTextCallback) bool {
+	if text == nil {
+		panic("text can't be nil")
+	}
+	labelArg, labelFin := wrapString(label)
+	defer labelFin()
+	bufArg := newStringBuffer(*text)
+	defer bufArg.free()
+	cbKey := iggInputTextCallbackKeyFor(func(data InputTextCallbackData) int32 {
+		if data.EventFlag() == inputTextFlagsCallbackResize {
+			bufArg.resizeTo(data.bufSize())
+			data.setBuf(bufArg.ptr, bufArg.size, data.bufTextLen())
+			return 0
+		}
+		return cb(data)
+	})
+	defer iggInputTextCallbackKeyRelease(cbKey)
+	result := C.iggInputText(labelArg, (*C.char)(bufArg.ptr), C.uint(bufArg.size), C.int(flags|inputTextFlagsCallbackResize), cbKey) != 0
+	*text = bufArg.toGo()
+
+	return result
+}
+
+// InputText calls InputTextV(label, string, 0, nil)
+func InputText(label string, text *string) bool {
+	return InputTextV(label, text, 0, nil)
+}
+
 // Separator is generally horizontal. Inside a menu bar or in horizontal layout mode, this becomes a vertical separator.
 func Separator() {
 	C.iggSeparator()
@@ -512,6 +546,34 @@ func SelectableV(label string, selected bool, flags int, size Vec2) bool {
 // Selectable calls SelectableV(label, false, 0, Vec2{0, 0})
 func Selectable(label string) bool {
 	return SelectableV(label, false, 0, Vec2{})
+}
+
+// ListBoxV creates a list of selectables of given items with equal height, enclosed with header and footer.
+// This version accepts a custom item height.
+// The function returns true if the selection was changed. The value of currentItem will indicate the new selected item.
+func ListBoxV(label string, currentItem *int32, items []string, heightItems int) bool {
+	labelArg, labelFin := wrapString(label)
+	defer labelFin()
+
+	valueArg, valueFin := wrapInt32(currentItem)
+	defer valueFin()
+
+	itemsCount := len(items)
+
+	argv := make([]*C.char, itemsCount)
+	for i, item := range items {
+		itemArg, itemDeleter := wrapString(item)
+		defer itemDeleter()
+		argv[i] = itemArg
+	}
+
+	return C.iggListBoxV(labelArg, valueArg, &argv[0], C.int(itemsCount), C.int(heightItems)) != 0
+}
+
+// ListBox calls ListBoxV(label, currentItem, items, -1)
+// The function returns true if the selection was changed. The value of currentItem will indicate the new selected item.
+func ListBox(label string, currentItem *int32, items []string) bool {
+	return ListBoxV(label, currentItem, items, -1)
 }
 
 // SetTooltip sets a text tooltip under the mouse-cursor, typically use with IsItemHovered().
